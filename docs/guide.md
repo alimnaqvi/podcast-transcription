@@ -228,5 +228,49 @@ The CLI is split into a few small modules so it can grow incrementally:
   and output serialization.
 - `cli.py` validates command-line options and connects those operations.
 
-Potential extensions include a persistent episode database, full-text
-search, resumable downloads, a local web interface, and transcript editing.
+## Roadmap / planned features
+
+This roadmap describes possible directions for the project, not features that
+are already implemented or release commitments. The order may change as the
+CLI gets real-world use.
+
+### More capable CLI and library management
+
+- Save feeds and episode metadata in a local library so feeds do not need to
+  be entered for every operation.
+- List, filter, and select saved episodes by podcast, title, date, or
+  transcription status instead of relying only on a feed position.
+- Add full-text search across transcripts, with matching excerpts and
+  timestamps in the results.
+- Support batch transcription, queueing, and retrying failed jobs.
+- Show download and transcription progress, and make long-running jobs
+  resumable after interruption.
+- Cache downloaded audio with controls to keep or remove it and avoid
+  downloading the same episode repeatedly.
+- Expose additional transcription settings and output choices, such as VTT,
+  configurable segment behavior, and output naming.
+
+### Local web app
+
+- Browse saved podcasts and episodes in a local web interface.
+- View a transcript alongside an audio player, with timestamp links that seek
+  to the corresponding point in the episode.
+- Search transcripts, select passages, and copy or export them for notes and
+  analysis.
+- Start, monitor, pause, and retry transcription jobs from the browser.
+- Keep the app local-first, with transcript and job data stored on the user's
+  machine.
+
+### Transcript tools and optional enhancements
+
+- Edit and correct transcript segments while retaining their timestamps.
+- Add optional speaker diarization for identifying likely speaker changes;
+  this would require separate models and should remain opt-in.
+- Add optional transcript summaries or structured exports as a separate
+  processing step, without replacing the original transcript.
+- Provide import/export or a small local API so other tools can use the
+  podcast library and transcript data.
+
+The CLI and its output formats are intended to remain useful independently,
+so the web app can build on the same transcription and library components
+rather than replacing them.
