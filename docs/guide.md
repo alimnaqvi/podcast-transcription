@@ -96,10 +96,10 @@ ambiguous matches are reported as errors. GUID matching is exact after
 trimming surrounding whitespace.
 
 The selected enclosure's audio is downloaded and transcribed. RSS transcripts
-are written under a directory named from the podcast title and episode title,
-for example `./transcripts/my-podcast--episode-title/`. The directory name is
-slugified and capped at 120 characters. The transcript file uses the episode
-title as its basename.
+are written under nested directories named from the podcast title and episode
+title, for example `./transcripts/my-podcast/episode-title/`. Both names are
+slugified and each directory component is capped at 120 characters. The
+transcript file uses the episode title as its basename.
 
 ### Transcribe an audio URL or local file
 
@@ -301,8 +301,10 @@ CLI gets real-world use.
 ### Transcript tools and optional enhancements
 
 - Edit and correct transcript segments while retaining their timestamps.
-- Add optional speaker diarization for identifying likely speaker changes;
-  this would require separate models and should remain opt-in.
+- Add optional speaker identification and labeling (for example, `Speaker 1`
+  and `Speaker 2`) so conversations are easier to follow. This speaker
+  diarization would require additional models, may not identify real names,
+  and should remain opt-in.
 - Add optional transcript summaries or structured exports as a separate
   processing step, without replacing the original transcript.
 - Provide import/export or a small local API so other tools can use the

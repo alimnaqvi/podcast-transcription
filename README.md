@@ -82,7 +82,8 @@ podcast-tx transcribe "https://example.com/podcast.rss" --title "Episode title p
 If multiple episode titles match, the command reports an ambiguity instead of
 silently choosing one. RSS-based outputs are placed in a directory under the
 output directory named from the podcast and episode titles, for example
-`transcripts/my-podcast--episode-title/`. The `.txt` transcript starts with
+`transcripts/my-podcast/episode-title/`. Each slugged directory component is
+limited to 120 characters. The `.txt` transcript starts with
 podcast and episode metadata (including publication date and description when
 provided by the feed).
 

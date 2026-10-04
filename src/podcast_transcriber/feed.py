@@ -107,11 +107,10 @@ def select_episode(
 def episode_output_dir(base_dir: Path, episode: Episode) -> Path:
     podcast = _slugify(episode.podcast_title) or "podcast"
     title = _slugify(episode.title) or "episode"
-    max_length = 120
-    separator = "--"
-    podcast = podcast[:40].rstrip("-")
-    title = title[: max_length - len(podcast) - len(separator)].rstrip("-")
-    return base_dir / f"{podcast}{separator}{title}"
+    max_component_length = 120
+    podcast = podcast[:max_component_length].rstrip("-") or "podcast"
+    title = title[:max_component_length].rstrip("-") or "episode"
+    return base_dir / podcast / title
 
 
 def _child_text(element: ElementTree.Element, tag: str) -> str:

@@ -95,10 +95,15 @@ class EpisodeSelectionTests(unittest.TestCase):
             podcast_title="A Podcast Name!",
         )
         output_dir = episode_output_dir(Path("transcripts"), episode)
-        self.assertEqual(output_dir, Path("transcripts/a-podcast-name--an-episode-title"))
+        self.assertEqual(
+            output_dir,
+            Path("transcripts/a-podcast-name/an-episode-title"),
+        )
 
         long_episode = Episode("x" * 200, "https://example.com/audio.mp3", podcast_title="Show")
-        self.assertLessEqual(len(episode_output_dir(Path("out"), long_episode).name), 120)
+        long_output_dir = episode_output_dir(Path("out"), long_episode)
+        self.assertLessEqual(len(long_output_dir.parent.name), 120)
+        self.assertLessEqual(len(long_output_dir.name), 120)
 
 
 if __name__ == "__main__":
