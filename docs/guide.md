@@ -63,7 +63,8 @@ podcast-tx episodes "https://example.com/podcast.rss" --limit 5
 
 Episodes are displayed in the order they appear in the feed. Many publishers
 put the newest item first, but ordering is controlled by the publisher.
-Indexes are one-based and refer only to items with an audio enclosure.
+The listing also includes GUIDs when the feed provides them.
+Each entry displays the matching `--episode` value for selecting that item.
 
 ### Transcribe a feed episode
 
@@ -71,8 +72,34 @@ Indexes are one-based and refer only to items with an audio enclosure.
 podcast-tx transcribe "https://example.com/podcast.rss" --episode 1
 ```
 
-The selected enclosure's audio is downloaded and transcribed. The tool prints
-the episode title and uses the audio URL's filename to name the outputs.
+`--episode` is one-based from the end of the feed's audio episodes:
+`--episode 1` selects the last item with an audio enclosure, usually the
+oldest/first episode, and `--episode 2` selects the second-to-last. Feed
+ordering is publisher-controlled, so use a GUID or title selector when you
+need to target an episode regardless of its position.
+
+Select by exact RSS GUID:
+
+```bash
+podcast-tx transcribe "https://example.com/podcast.rss" --guid "publisher-episode-guid"
+```
+
+Select by a case-insensitive substring of the RSS `<title>`:
+
+```bash
+podcast-tx transcribe "https://example.com/podcast.rss" --title "episode title phrase"
+```
+
+Exactly one of `--episode`, `--guid`, or `--title` may be used for RSS
+selection. A title substring must match exactly one episode; no match and
+ambiguous matches are reported as errors. GUID matching is exact after
+trimming surrounding whitespace.
+
+The selected enclosure's audio is downloaded and transcribed. RSS transcripts
+are written under a directory named from the podcast title and episode title,
+for example `./transcripts/my-podcast--episode-title/`. The directory name is
+slugified and capped at 120 characters. The transcript file uses the episode
+title as its basename.
 
 ### Transcribe an audio URL or local file
 
@@ -113,13 +140,17 @@ models may not fit depending on their configuration and GPU memory use.
 
 ## Output files
 
-For each source, the CLI writes three UTF-8 files using a sanitized source
-filename as their basename:
+For each source, the CLI writes three UTF-8 files. Direct audio inputs use a
+sanitized source filename as their basename; RSS episodes use a sanitized
+episode title:
 
 ### Plain text (`.txt`)
 
-Recognized segment text joined in chronological order, ready for searching,
-notes, or an LLM prompt. Timestamps and speaker labels are not included.
+For direct audio, this is recognized segment text joined in chronological
+order. For RSS episodes, it begins with feed metadata before the transcript:
+podcast title, episode title, publication date, GUID, and description when
+available. The transcript text follows under a `Transcript:` heading.
+Timestamps and speaker labels are not included in the text body.
 
 ### SubRip subtitles (`.srt`)
 
@@ -134,6 +165,8 @@ An object containing:
 - `model`: the selected model name or path.
 - `language`: the detected or specified language code.
 - `language_probability`: Whisper's confidence in the language detection.
+- `podcast_title`, `episode_title`, `published`, `guid`, and `description`:
+  RSS metadata for feed-selected episodes; `null` for direct audio input.
 - `segments`: chronological objects with `start`, `end`, and `text`.
 
 The JSON segments are useful for future search indexing, transcript viewers,
@@ -145,16 +178,20 @@ output files with the same basename in the chosen output directory.
 1. **Resolve the audio source.** Local files are passed directly to the audio
    decoder. For a URL, the CLI downloads the response into a uniquely named
    temporary file in the output directory.
-2. **Prepare the inference runtime.** The CLI checks the selected device. For
+2. **Resolve RSS selection (when requested).** The feed is parsed and its
+   audio-bearing episodes can be selected by reverse feed position, exact GUID,
+   or a unique title substring. Podcast and episode metadata is retained for
+   the output.
+3. **Prepare the inference runtime.** The CLI checks the selected device. For
    CUDA, it loads the cuBLAS and cuDNN shared libraries installed by the
    optional Python extra, then asks CTranslate2 whether a CUDA device is
    available.
-3. **Load the model.** Faster-Whisper loads the requested model from the local
+4. **Load the model.** Faster-Whisper loads the requested model from the local
    model cache or downloads it on first use.
-4. **Decode and recognize.** PyAV decodes the input audio. Faster-Whisper
+5. **Decode and recognize.** PyAV decodes the input audio. Faster-Whisper
    performs voice activity detection, then sends speech through Whisper and
    returns text segments with timestamps. Beam search uses a beam size of 5.
-5. **Write results.** The segment text and metadata are written as `.txt`,
+6. **Write results.** The segment text and metadata are written as `.txt`,
    `.srt`, and `.json`. Downloaded temporary audio is removed even if
    transcription raises an error.
 

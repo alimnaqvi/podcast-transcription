@@ -7,6 +7,8 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
+from podcast_transcriber.feed import Episode
+
 _CUDA_LIBRARY_HANDLES: list[ctypes.CDLL] = []
 
 
@@ -16,9 +18,12 @@ def transcribe(
     model_name: str,
     language: str | None,
     device: str,
+    episode: Episode | None = None,
 ) -> tuple[Path, Path, Path]:
     audio_path, should_remove = _prepare_audio(source, output_dir)
-    stem = _safe_stem(audio_path.stem if not should_remove else _source_stem(source))
+    stem = _safe_stem(
+        episode.title if episode else audio_path.stem if not should_remove else _source_stem(source)
+    )
     try:
         from faster_whisper import WhisperModel
 
@@ -53,10 +58,8 @@ def transcribe(
     srt_path = output_dir / f"{stem}.srt"
     json_path = output_dir / f"{stem}.json"
 
-    text_path.write_text(
-        "\n".join(segment["text"] for segment in segment_data).strip() + "\n",
-        encoding="utf-8",
-    )
+    transcript = "\n".join(segment["text"] for segment in segment_data).strip()
+    text_path.write_text(_text_output(transcript, episode), encoding="utf-8")
     srt_path.write_text(_to_srt(segment_data), encoding="utf-8")
     json_path.write_text(
         json.dumps(
@@ -65,6 +68,11 @@ def transcribe(
                 "model": model_name,
                 "language": info.language,
                 "language_probability": info.language_probability,
+                "podcast_title": episode.podcast_title if episode else None,
+                "episode_title": episode.title if episode else None,
+                "published": episode.published if episode else None,
+                "guid": episode.guid if episode else None,
+                "description": episode.description if episode else None,
                 "segments": segment_data,
             },
             ensure_ascii=False,
@@ -74,6 +82,22 @@ def transcribe(
         encoding="utf-8",
     )
     return text_path, srt_path, json_path
+
+
+def _text_output(transcript: str, episode: Episode | None) -> str:
+    if episode is None:
+        return transcript + "\n"
+
+    metadata = [
+        ("Podcast", episode.podcast_title),
+        ("Episode", episode.title),
+        ("Published", episode.published),
+        ("GUID", episode.guid),
+        ("Description", episode.description),
+    ]
+    lines = [f"{label}: {value}" for label, value in metadata if value]
+    lines.extend(("", "Transcript:", transcript))
+    return "\n".join(lines) + "\n"
 
 
 def _resolve_device(device: str) -> tuple[str, str]:

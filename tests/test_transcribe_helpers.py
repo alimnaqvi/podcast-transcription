@@ -5,7 +5,9 @@ from podcast_transcriber.transcribe import (
     _load_cuda_runtime_libraries,
     _safe_stem,
     _to_srt,
+    _text_output,
 )
+from podcast_transcriber.feed import Episode
 
 
 class TranscriptFormattingTests(unittest.TestCase):
@@ -29,6 +31,21 @@ class TranscriptFormattingTests(unittest.TestCase):
     def test_missing_cuda_runtime_has_actionable_error(self, _find_spec):
         with self.assertRaisesRegex(RuntimeError, "libcublas.so.12"):
             _load_cuda_runtime_libraries()
+
+    def test_rss_text_output_has_episode_metadata_before_transcript(self):
+        episode = Episode(
+            title="Episode title",
+            audio_url="https://example.com/episode.mp3",
+            published="Sat, 03 Oct 2026",
+            guid="abc-123",
+            description="A short summary.",
+            podcast_title="Podcast title",
+        )
+        result = _text_output("Recognized words.", episode)
+        self.assertTrue(result.startswith("Podcast: Podcast title\n"))
+        self.assertIn("Episode: Episode title\n", result)
+        self.assertIn("Published: Sat, 03 Oct 2026\n", result)
+        self.assertIn("Description: A short summary.\n\nTranscript:\nRecognized words.", result)
 
 
 if __name__ == "__main__":

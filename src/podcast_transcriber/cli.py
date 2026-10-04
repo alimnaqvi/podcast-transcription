@@ -2,7 +2,7 @@ import argparse
 import sys
 from pathlib import Path
 
-from podcast_transcriber.feed import fetch_feed
+from podcast_transcriber.feed import episode_output_dir, fetch_feed, select_episode
 from podcast_transcriber.transcribe import transcribe
 
 
@@ -25,10 +25,19 @@ def _parser() -> argparse.ArgumentParser:
         "source",
         help="Audio file or audio URL; use an RSS feed URL together with --episode",
     )
-    transcribe_command.add_argument(
+    episode_selector = transcribe_command.add_mutually_exclusive_group()
+    episode_selector.add_argument(
         "--episode",
         type=int,
-        help="1-based position in the feed (RSS feeds usually list newest first)",
+        help="1-based position from the end of the feed (1 selects the last audio episode)",
+    )
+    episode_selector.add_argument(
+        "--guid",
+        help="Select an RSS episode by its exact GUID",
+    )
+    episode_selector.add_argument(
+        "--title",
+        help="Select the unique RSS episode whose title contains this text (case-insensitive)",
     )
     transcribe_command.add_argument(
         "--output-dir",
@@ -63,30 +72,40 @@ def main() -> int:
                 parser.error("--limit must be greater than zero")
             episodes = fetch_feed(args.feed_url)
             for index, episode in enumerate(episodes[: args.limit], start=1):
+                episode_number = len(episodes) - index + 1
                 published = f" ({episode.published})" if episode.published else ""
-                print(f"{index:>3}. {episode.title}{published}\n     {episode.audio_url}")
+                guid = f"\n     GUID: {episode.guid}" if episode.guid else ""
+                print(
+                    f"{index:>3}. {episode.title}{published} "
+                    f"[--episode {episode_number}]\n"
+                    f"     {episode.audio_url}{guid}"
+                )
             return 0
 
         source = args.source
-        if args.episode is not None:
-            if args.episode < 1:
-                parser.error("--episode must be 1 or greater")
+        episode = None
+        if any(value is not None for value in (args.episode, args.guid, args.title)):
             episodes = fetch_feed(source)
-            if args.episode > len(episodes):
-                parser.error(
-                    f"--episode {args.episode} is out of range; "
-                    f"the feed has {len(episodes)} audio episodes."
-                )
-            episode = episodes[args.episode - 1]
+            episode = select_episode(
+                episodes,
+                episode_number=args.episode,
+                guid=args.guid,
+                title=args.title,
+            )
             source = episode.audio_url
             print(f"Transcribing: {episode.title}")
 
+        output_dir = args.output_dir
+        if episode is not None:
+            output_dir = episode_output_dir(output_dir, episode)
+
         paths = transcribe(
             source=source,
-            output_dir=args.output_dir,
+            output_dir=output_dir,
             model_name=args.model,
             language=args.language,
             device=args.device,
+            episode=episode,
         )
         print("Saved transcripts:")
         for path in paths:

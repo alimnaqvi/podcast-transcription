@@ -61,11 +61,30 @@ List recent episodes in an RSS feed:
 podcast-tx episodes "https://example.com/podcast.rss" --limit 10
 ```
 
-Transcribe the first (usually newest) episode from a feed:
+Each listed episode includes its corresponding `--episode` value.
+
+Transcribe the last audio episode listed in a feed (usually the podcast's
+oldest/first episode):
 
 ```bash
 podcast-tx transcribe "https://example.com/podcast.rss" --episode 1 --language en
 ```
+
+`--episode 2` selects the second-to-last audio episode. You can avoid depending
+on feed order by selecting an exact RSS GUID or a unique, case-insensitive
+title substring:
+
+```bash
+podcast-tx transcribe "https://example.com/podcast.rss" --guid "publisher-episode-guid"
+podcast-tx transcribe "https://example.com/podcast.rss" --title "Episode title phrase"
+```
+
+If multiple episode titles match, the command reports an ambiguity instead of
+silently choosing one. RSS-based outputs are placed in a directory under the
+output directory named from the podcast and episode titles, for example
+`transcripts/my-podcast--episode-title/`. The `.txt` transcript starts with
+podcast and episode metadata (including publication date and description when
+provided by the feed).
 
 You can also pass a direct audio URL or a local audio file:
 
